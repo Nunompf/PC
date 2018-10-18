@@ -1,0 +1,4 @@
+C:\Users\Cliente\Desktop\PC\serie_1\EventBus\EventBus\obj\Debug\netcoreapp2.0\EventBus.csprojResolveAssemblyReference.cache
+C:\Users\Cliente\Desktop\PC\serie_1\EventBus\EventBus\obj\Debug\netcoreapp2.0\EventBus.csproj.CoreCompileInputs.cache
+C:\Users\Cliente\Desktop\PC\serie_1\EventBus\EventBus\obj\Debug\netcoreapp2.0\EventBus.AssemblyInfoInputs.cache
+C:\Users\Cliente\Desktop\PC\serie_1\EventBus\EventBus\obj\Debug\netcoreapp2.0\EventBus.AssemblyInfo.cs
