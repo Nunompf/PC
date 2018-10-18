@@ -5,38 +5,12 @@ using System.Threading;
 
 namespace EventBus
 {
-    public class Eventos<T>
-    {
-        Type t;
-        static Dictionary<Type, LinkedList<Action<T>>> events = new Dictionary<Type, LinkedList<Action<T>>>();
-        int maxPending;
-        public Eventos(Type t, Action<T> handler, int maxPending)
-        {
-            this.t = t;
-            this.maxPending = maxPending;
-        }
-
-        public Dictionary<Type, LinkedList<Action<T>>> GetDictionary()
-        {
-            return events;
-        }
-
-        public void Compute(Type key, Action<T> handler)
-        {
-            events.Add(key, new LinkedList<Action<T>>());
-            events[typeof(T)].AddLast(handler);
-        }
-
-        public void Add(Type key, Action<T> handler)
-        {
-            if (events[typeof(T)].Count < maxPending)
-                events[typeof(T)].AddLast(handler);
-        }
-    }
     public class EventBus
     {
         int maxPending;
+        bool shutdown;
         Object monitor = new object();
+        Dictionary<Type, LinkedList<Subscribers>> events = new Dictionary<Type, LinkedList<Subscribers>>();
 
         public EventBus(int maxPending)
         {
@@ -44,23 +18,28 @@ namespace EventBus
         }
         public void SubscribeEvent<T>(Action<T> handler) where T : class
         {
-            Eventos<T> eventos = new Eventos<T>(typeof(T), handler, maxPending);
+            Subscribers subs = new Subscribers(maxPending);
             try
             {
                 lock (monitor)
                 {
                     while (true)
                     {
-                        if (!eventos.GetDictionary().ContainsKey(typeof(T)))
+                        if (shutdown) return;
+                        if (!events.ContainsKey(typeof(T)))
                         {
-                            eventos.Compute(typeof(T), handler);
+                            events.Add(typeof(T), new LinkedList<Subscribers>());
+                            events[typeof(T)].AddLast(subs);
                         }
                         else
                         {
-                            if(eventos.GetDictionary()[typeof(T)].Count < maxPending)
-                                eventos.Add(typeof(T), handler);
+                            if(events[typeof(T)].Count < subs.getMaxPending())
+                                events[typeof(T)].AddLast(subs);
                         }
-                        SyncUtils.Wait(monitor, monitor);
+                        //try
+                        SyncUtils.Wait(monitor, subs.con);
+                        subs.execute(handler);
+                        if(shutdown) //ir dic e rretirar subs 
                     }
                 }
             }
@@ -71,11 +50,51 @@ namespace EventBus
         }
         public void PublishEvent<E>(E message) where E : class
         {
-
+            try
+            {
+                lock (monitor)
+                {
+                    foreach (var v in events)
+                    {
+                        if (v.Key.Equals(typeof(E)))
+                        {
+                           foreach(Subscribers s in v.Value)
+                            {
+                                s.message = message;
+                                SyncUtils.Notify(monitor, s.con);
+                            }
+                        }
+                    }
+                }
+            }
+            finally
+            {
+                
+            }
         }
         public void Shutdown()
         {
-
+            //dentro excl. mutua
+            shutdown = true;
         }
     }
+
+    public class Subscribers
+    {
+        public Object message;
+        public Object con = new object();
+
+        int maxPending;
+        public Subscribers(int maxPending)
+        {
+            this.maxPending = maxPending;
+        }
+        public void execute<T>(Action<T> action) => action((T)message);
+
+        public int getMaxPending()
+        {
+            return maxPending;
+        }
+    }
+
 }
