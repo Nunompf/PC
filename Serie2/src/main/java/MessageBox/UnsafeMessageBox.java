@@ -1,3 +1,5 @@
+package MessageBox;
+
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class UnsafeMessageBox<M> {
@@ -12,19 +14,20 @@ public class UnsafeMessageBox<M> {
         }
     }
 
-    private MsgHolder msgHolder = null;
+    private volatile MsgHolder msgHolder = null;
 
     public void publish(M m, int lvs) {
         msgHolder = new MsgHolder(m, lvs);
     }
     public M tryConsume() {
-        if (msgHolder == null) return null;
+        MsgHolder holder = this.msgHolder;
+        if (holder == null) return null;
         int observedUnits;
         do {
-            observedUnits = msgHolder.lives.get();
+            observedUnits = holder.lives.get();
             if (observedUnits == 0) return null;
-        } while (!msgHolder.lives.compareAndSet(observedUnits, observedUnits - 1));
-        return msgHolder.msg;
+        } while (!holder.lives.compareAndSet(observedUnits, observedUnits - 1));
+        return holder.msg;
     }
 
 }

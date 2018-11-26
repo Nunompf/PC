@@ -1,3 +1,6 @@
+package MessageBox;
+
+import MessageBox.UnsafeMessageBox;
 import org.junit.Test;
 
 import java.util.LinkedList;
